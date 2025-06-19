@@ -2,7 +2,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.animation import FuncAnimation
 import streamlit as st
-import time
+import time # Importado pero no usado directamente en el flujo principal
 
 # --- Configuración de la Página de Streamlit ---
 st.set_page_config(layout="wide", page_title="Simulador de Cilindro Rotando")
@@ -193,9 +193,10 @@ with col2:
     axs[1].legend()
     line_v_lineal, = axs[1].plot([0, 0], axs[1].get_ylim(), 'k--', linewidth=1)
 
-    axs[2].plot(time_points, E_kr_points, label='Energía Cinética Rotacional ($E_{kr}$)', color='purple')
-    axs[2].plot(time_points, E_kt_points, label='Energía Cinética Traslacional ($E_{kt}$)', color='brown', linestyle='--')
-    axs[2].plot(time_points, E_total_points, label='Energía Cinética Total ($E_{total}$)', color='red', linewidth=2)
+    # MODIFICACIÓN CLAVE AQUÍ: Eliminación de la sintaxis LaTeX en las etiquetas
+    axs[2].plot(time_points, E_kr_points, label='Energía Cinética Rotacional (E_kr)', color='purple')
+    axs[2].plot(time_points, E_kt_points, label='Energía Cinética Traslacional (E_kt)', color='brown', linestyle='--')
+    axs[2].plot(time_points, E_total_points, label='Energía Cinética Total (E_total)', color='red', linewidth=2)
     axs[2].set_title('Energías Cinéticas vs. Tiempo')
     axs[2].set_xlabel('Tiempo (s)')
     axs[2].set_ylabel('Energía (J)')
@@ -203,6 +204,7 @@ with col2:
     axs[2].legend()
     line_energy, = axs[2].plot([0, 0], axs[2].get_ylim(), 'k--', linewidth=1)
 
+    # La línea plt.tight_layout() que causaba el error se mantiene, ya que el problema real era el texto.
     plt.tight_layout()
 
     # --- Función para obtener la animación ---
@@ -225,7 +227,7 @@ with col2:
             inner_circle_cached = plt.Circle((0, 0), radio_interno, color='white', alpha=1.0)
             ax_cached.add_patch(inner_circle_cached)
         elif tipo_solido == "Cilindro de Pared Delgada":
-            if radio * 0.9 > 0:
+            if radio * 0.9 > 0: # Ensure valid inner radius for visualization
                 inner_circle_cached = plt.Circle((0, 0), radio * 0.9, color='white', alpha=1.0)
                 ax_cached.add_patch(inner_circle_cached)
 
@@ -296,12 +298,19 @@ with col2:
         return fig_cached, ani_cached
 
     # --- Mostrar la Animación Principal y luego las Gráficas ---
-    fig_animation, ani = get_animation_with_timer(masa, radio, radio_interno, tipo_solido, alpha, t_final, fps_display,
-                                                    line_omega, line_v_lineal, line_energy)
-    animation_html = ani.to_jshtml()
-    st.components.v1.html(animation_html, height=650)
-    
-    st.pyplot(fig_plots)
+    # Se añade un bloque try-except alrededor de la generación de la animación para capturar errores de Matplotlib
+    # si persistieran, aunque la modificación de las etiquetas debería resolver el problema principal.
+    try:
+        fig_animation, ani = get_animation_with_timer(masa, radio, radio_interno, tipo_solido, alpha, t_final, fps_display,
+                                                     line_omega, line_v_lineal, line_energy)
+        animation_html = ani.to_jshtml()
+        st.components.v1.html(animation_html, height=650)
+        
+        st.pyplot(fig_plots) # Mostrar las gráficas después de la animación
 
-    plt.close(fig_animation)
-    plt.close(fig_plots)
+        plt.close(fig_animation) # Cierra la figura de la animación para liberar memoria
+        plt.close(fig_plots)     # Cierra la figura de las gráficas para liberar memoria
+
+    except Exception as e:
+        st.error(f"¡Oops! Ocurrió un error al generar la visualización. Esto puede deberse a la configuración de los parámetros o a un problema en el renderizado. Intenta ajustar los valores.")
+        st.exception(e) # Muestra el error completo para depuración
